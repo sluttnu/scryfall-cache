@@ -1,0 +1,18 @@
+services:
+  scryfall-cache:
+    image: ghcr.io/sluttnu/scryfall-cache:${TAG:-latest}
+    container_name: scryfall-cache
+    restart: unless-stopped
+    env_file: .env
+    init: true
+    volumes:
+      - scryfall-cache-data:/app/data
+    networks: [proxy]
+
+volumes:
+  scryfall-cache-data:
+
+networks:
+  proxy:
+    external: true
+    name: proxy
