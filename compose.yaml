@@ -1,15 +1,54 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: scryfall-cache-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: scryfall_cache
+      POSTGRES_USER: scryfall
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - scryfall-cache-postgres-data:/var/lib/postgresql/data
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scryfall -d scryfall_cache"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: scryfall-cache-redis
+    restart: unless-stopped
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   scryfall-cache:
     image: ghcr.io/sluttnu/scryfall-cache:${TAG:-latest}
     container_name: scryfall-cache
     restart: unless-stopped
     env_file: .env
     init: true
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - proxy
     volumes:
       - scryfall-cache-data:/app/data
-    networks: [proxy]
 
 volumes:
+  scryfall-cache-postgres-data:
   scryfall-cache-data:
 
 networks:
